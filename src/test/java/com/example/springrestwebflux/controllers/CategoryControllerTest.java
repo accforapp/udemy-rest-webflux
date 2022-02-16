@@ -5,11 +5,13 @@ import com.example.springrestwebflux.repositories.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.reactivestreams.Publisher;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
@@ -55,5 +57,32 @@ class CategoryControllerTest {
         .exchange()
         .expectStatus().isOk()
         .expectBody().jsonPath("$.id", "1");
+  }
+
+  @Test
+  void createNewCategory() {
+
+    given(categoryRepository.saveAll(any(Publisher.class))).willReturn(Flux.just(new Category()));
+
+    Mono<Category> categoryToSav = Mono.just(Category.builder().description("Test category").build());
+
+    webTestClient.post().uri("/api/v1/categories")
+        .body(categoryToSav, Category.class)
+        .exchange()
+        .expectStatus().isCreated();
+  }
+
+  @Test
+  void updateCategory() {
+
+    given(categoryRepository.save(any(Category.class))).willReturn(Mono.just(Category.builder().id("1").description("Test category").build()));
+
+    Mono<Category> categoryForUpdate = Mono.just(Category.builder().description("Test category").build());
+
+    webTestClient.put().uri("/api/v1/categories/1")
+        .body(categoryForUpdate, Category.class)
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody().json("{\"id\": \"1\", \"description\": \"Test category\"}");
   }
 }
